@@ -146,7 +146,7 @@ JAZZMIN_SETTINGS = {
     "site_title": "Library Admin",
     "site_header": "Library",
     "site_brand": "Rudra's Library",
-    "site_logo": "path-to-login",
+    "site_logo": r"C:\Users\rudra\OneDrive\Desktop\LMS\Backend\static\Library.jpg",
      "welcome_sign": "Welcome to the Rudra's Library",
      "copyright": "Rudra's LMS Ltd",
 
