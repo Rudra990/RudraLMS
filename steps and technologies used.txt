@@ -1,0 +1,4 @@
+django
+jazzmin
+django serialization
+jwt(json web token)
