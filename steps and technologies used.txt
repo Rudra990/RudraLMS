@@ -1,4 +1,4 @@
 django
 jazzmin
 django serialization
-jwt(json web token)
+simple_jwt(json web token)
