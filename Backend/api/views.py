@@ -2,10 +2,15 @@ from django.shortcuts import render
 from api import serializer as api_serializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from userauths.models import User,Profile
-from rest_framework import generics
+from rest_framework import generics,status
 from rest_framework.permissions import AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 import random
+
+
+from rest_framework.response import Response
+
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
   serializer_class = api_serializer.MyTokenObtainPairSerializer
@@ -48,6 +53,29 @@ class PasswordResetEmailVerifyAPIView(generics.RetrieveAPIView):
       print("link =====",link)
 
     return user
+
+
+class PasswordChangeAPIView(generics.CreateAPIView):
+  permission_classes = [AllowAny]
+  serializer_class = api_serializer.UserSerializer
+
+  def create(self, request, *args, **kwargs):
+    otp = request.data['otp']
+    uuidb64 = request.data['uuid64']
+    password = request.data['password']
+
+    user = User.objects.get(id=uuidb64,otp=otp)
+    if user:
+      user.set_password(password)
+      user.otp = ""
+      user.save()
+
+      return Response({"message":"Password Changed Successfully"}, status=status.HTTTP_201_CREATED)
+    
+    else:
+      return Response({"message":"User Not Found"},status=status.HTTP_404_NOT_FOUND)
+
+  
 
 
 
