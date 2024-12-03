@@ -55,6 +55,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    # 'anymail', ## this is a API for sending email
+    'drf_yasg'
     
 ]
 
@@ -148,7 +150,21 @@ MEDIA_URL = '/media/' ##url used to  access
 MEDIA_ROOT = BASE_DIR / 'media'  ##name of the folder where media will be saved
 
 AUTH_USER_MODEL = 'userauths.User'
-MAILGUN_SECRET_KEY = env("MAILGUN_SECRET_KEY")
+
+##setup mail gun later on
+
+# MAILGUN_API_KEY = env("MAILGUN_SECRET_KEY")
+# MAILGUN_API_TOKEN = env("MAILSEND_API_TOKEN")
+# MAILGUN_SENDER_DOMAIN = env("MAILGUN_SENDER_DOMAIN")
+
+
+# ANYMAIL = {
+#     "MAILGUN_API_KEY":env("MAILGUN_API_KEY"),
+#     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
+# }
+
+# FROM_EMAIL = env("FROM_EMAIL")
+#EMAIL_BACKEND = 'anymail.backends.mailgun.EmailBackend'
 
 
 # Default primary key field type
