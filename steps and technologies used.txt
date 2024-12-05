@@ -2,3 +2,8 @@ django
 jazzmin
 django serialization
 simple_jwt(json web token)
+
+
+vite
+react
+zustand
