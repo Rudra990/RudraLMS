@@ -2,6 +2,8 @@ import React from 'react'
 import BaseHeader from '../partials/BaseHeader'
 import BaseFooter from '../partials/BaseFooter'
 
+import { useState, useEffect } from "react";
+import apiInstance from "../../utils/axios";
 
 function CreateNewPassword() {
   return (

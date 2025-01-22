@@ -1,12 +1,11 @@
-import React from "react";
+import React from "react"
 import { useState, useEffect } from "react";
 
-import BaseHeader from "../partials/BaseHeader";
-import BaseFooter from "../partials/BaseFooter";
-
-import { useNavigate, Link } from "react-router-dom";
 import apiInstance from "../../utils/axios";
 import { login } from "../../utils/auth";
+import BaseHeader from "../partials/BaseHeader";
+import BaseFooter from "../partials/BaseFooter";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
   const [email, setEmail] = useState("");
