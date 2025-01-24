@@ -1,3 +1,5 @@
+###SCHEMA DESIGN
+
 from django.db import models
 
 from django.utils.text import slugify
@@ -29,12 +31,43 @@ TEACHER_STATUS = (
     ("Published", "Published"),
 )
 
+TEACHER_STATUS = (
+    ("Paid", "Paid"),
+    ("Processing", "Processing"),
+    ("Failed", "Failed"),
+)
+
 PLATFORM_STATUS = (
     ("Review", "Review"),
     ("Disabled", "Disabled"),
     ("Rejected", "Rejected"),
     ("Draft","Draft"),
     ("Published","Published")
+)
+
+PAYMENT_STATUS = (
+    ("Paid", "Paid"),
+    ("Processing", "Processing"),
+    ("Failed", "Failed"),
+)
+
+
+RATING = (
+    (1, "1 star"),
+    (2, "2 star"),
+    (3, "3 star"),
+    (4, "4 star"),
+    (5, "5 star"),
+)
+
+
+
+NOTI_TYPE = (
+    ("New Order", "New Order"),
+    ("New Review", "New Review"),
+    ("New Course Question", "New Course Question"),
+    ("Draft","Draft"),
+    ("Course Published","Course Published")
 )
 
 # Create your models here.
@@ -93,7 +126,7 @@ class Course(models.Model):
     image = models.FileField(max_length=200, blank=True, null=True)
     title = models.CharField(max_length=200, blank=True, null=True)
     description = models.TextField(null=True, blank=True)
-    price = models.DecimalField(max_digit=12, decimal_places=2, default=0.00, blank=True, null=True)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True, null=True)
     language = models.CharField(choices=LANGUAGE, default="English", max_length=100, blank=True, null=True)
     level = models.CharField(choices=LEVEL, default="Beginner", max_length=100, blank=True, null=True)
     platform_status = models.CharField(choices=PLATFORM_STATUS, default="Published", max_length=100, blank=True, null=True)
@@ -256,3 +289,146 @@ class CartOrder(models.Model):
     
     def __str__(self):
         return self.oid
+    
+
+class CartOrderItem(models.Model):
+    order = models.ForeignKey(CartOrder, on_delete=models.CASCADE, related_name="orderitem")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="order_item")
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    price = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    tax_fee = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    initial_total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    saved = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    coupons = models.ManyToManyField("api.Coupon", blank=True)
+    applied_coupon = models.BooleanField(default=False)
+    oid = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-date']
+    
+    def order_id(self):
+        return f"Order ID #{self.order.oid}"
+    
+    def payment_status(self):
+        return f"{self.order.payment_status}"
+    
+    def __str__(self):
+        return self.oid
+    
+class Certificate(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    certificate_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.course.title
+
+class CompletedLesson(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    variant_item = models.ForeignKey(VariantItem, on_delete=models.CASCADE)
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.course.title
+    
+
+class EnrolledCourse(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True)
+    order_item = models.ForeignKey(CartOrderItem, on_delete=models.CASCADE)
+    enrollment_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.course.title
+    
+    def lectures(self):
+        return VariantItem.objects.filter(variant__course=self.course)
+    
+    def completed_lesson(self):
+        return CompletedLesson.objects.filter(course=self.course, user=self.user)
+    
+    def curriculum(self):
+        return Variant.objects.filter(course=self.course)
+    
+    def note(self):
+        return Note.objects.filter(course=self.course, user=self.user)
+    
+    def question_answer(self):
+        return Question_Answer.objects.filter(course=self.course)
+    
+    def review(self):
+        return Review.objects.filter(course=self.course, user=self.user).first()
+    
+class Note(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    title = models.CharField(max_length=1000, null=True, blank=True)
+    note = models.TextField()
+    note_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)   
+
+    def __str__(self):
+        return self.title
+    
+class Review(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    review = models.TextField()
+    rating = models.IntegerField(choices=RATING, default=None)
+    reply = models.CharField(null=True, blank=True, max_length=1000)
+    active = models.BooleanField(default=False)
+    date = models.DateTimeField(default=timezone.now)   
+
+    def __str__(self):
+        return self.course.title
+    
+    def profile(self):
+        return Profile.objects.get(user=self.user)
+    
+
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True)
+    order = models.ForeignKey(CartOrder, on_delete=models.SET_NULL, null=True, blank=True)
+    order_item = models.ForeignKey(CartOrderItem, on_delete=models.SET_NULL, null=True, blank=True)
+    review = models.ForeignKey(Review, on_delete=models.SET_NULL, null=True, blank=True)
+    type = models.CharField(max_length=100, choices=NOTI_TYPE)
+    seen = models.BooleanField(default=False)
+    date = models.DateTimeField(default=timezone.now)  
+
+    def __str__(self):
+        return self.type
+
+
+class Coupon(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.SET_NULL, null=True, blank=True)
+    used_by = models.ManyToManyField(User, blank=True)
+    code = models.CharField(max_length=50)
+    discount = models.IntegerField(default=1)
+    active = models.BooleanField(default=False)
+    date = models.DateTimeField(default=timezone.now)   
+
+    def __str__(self):
+        return self.code
+    
+class Wishlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    
+    def __str__(self):
+        return str(self.course.title)
+    
+class Country(models.Model):
+    name = models.CharField(max_length=100)
+    tax_rate = models.IntegerField(default=5)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+    
