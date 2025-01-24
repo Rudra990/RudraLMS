@@ -2,10 +2,13 @@ from django.db import models
 
 from django.utils.text import slugify
 
-
-from userauths.models import user, Profile
+from moviepy.editor import VideoFileClip
+from userauths.models import User, Profile
 from shortuuid.django_fields import ShortUUIDField
 from django.utils import timezone
+
+import math
+
 
 LANGUAGE = (
     ("English", "English"),
@@ -142,3 +145,114 @@ class Variant(models.Model):
     
     def items(self):
         return VariantItem.objects.filter(variant=self)
+    
+
+class VariantItem(models.Model):
+    variant = models.ForeignKey(Variant, on_delete=models.CASCADE, related_name="variant_items")
+    title = models.CharField(max_length=1000)
+    description = models.TextField(null=True, blank=True)
+    file = models.FileField(upload_to="course-file")
+    duration = models.DurationField(null=True, blank=True)
+    content_duration = models.CharField(max_length=1000, null=True, blank=True)
+    preview = models.BooleanField(default=False)
+    variant_item_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.variant.title} - {self.title}"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+        if self.file:
+            clip = VideoFileClip(self.file.path) ##file path must be provided
+            duration_seconds = clip.duration 
+
+            minutes, remainder = divmod(duration_seconds, 60)  ##convert duration to mins and seconds
+
+            minutes = math.floor(minutes)
+            seconds = math.floor(remainder)
+
+            duration_text = f"{minutes}m {seconds}s" ##human readable string
+            self.content_duration = duration_text
+            super().save(update_fields=['content_duration'])
+
+
+class Question_Answer(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=1000, null=True, blank=True)
+    qa_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
+    
+    class Meta:
+        ordering = ['-date']
+
+    def messages(self):
+        return Question_Answer_Message.objects.filter(question=self)
+    
+    def profile(self):
+        return Profile.objects.get(user=self.user)
+    
+
+class Question_Answer_Message(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question_Answer, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    message = models.TextField(null=True, blank=True)
+    qam_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    qa_id = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.course.title}"
+    
+    class Meta:
+        ordering = ['date']
+
+    def profile(self):
+        return Profile.objects.get(user=self.user)
+    
+
+class Cart(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    price = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    tax_fee = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    cart_id = ShortUUIDField(length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return self.course.title
+    
+class CartOrder(models.Model):
+    student = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    teachers = models.ManyToManyField(Teacher, blank=True)
+    sub_total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    tax_fee = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    initial_total = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    saved = models.DecimalField(max_digits=12, default=0.00, decimal_places=2)
+    payment_status = models.CharField(choices=PAYMENT_STATUS, default="Processing", max_length=100)
+    full_name = models.CharField(max_length=100, null=True, blank=True)
+    email = models.CharField(max_length=100, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    coupons = models.ManyToManyField("api.Coupon", blank=True)
+    stripe_session_id = models.CharField(max_length=1000, null=True, blank=True)
+    oid = ShortUUIDField(unique=True, length=6, max_length=20, alphabet="1234567890")
+    date = models.DateTimeField(default=timezone.now)
+
+
+    class Meta:
+        ordering = ['-date']
+    
+    def order_items(self):
+        return CartOrderItem.objects.filter(order=self)
+    
+    def __str__(self):
+        return self.oid
