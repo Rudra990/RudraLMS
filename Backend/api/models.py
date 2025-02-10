@@ -67,7 +67,8 @@ NOTI_TYPE = (
     ("New Review", "New Review"),
     ("New Course Question", "New Course Question"),
     ("Draft","Draft"),
-    ("Course Published","Course Published")
+    ("Course Published","Course Published"),
+    ("Course Enrollment Completed", "Course Published"),
 )
 
 # Create your models here.

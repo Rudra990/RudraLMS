@@ -7,3 +7,5 @@ simple_jwt(json web token)
 vite
 react
 zustand
+##paypal integration
+##stripe integration
